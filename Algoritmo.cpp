@@ -5,6 +5,8 @@
 #include <random>    
 #include <numeric>   
 #include <iostream>  
+#include <unordered_map>
+#include <unordered_set>
 
 namespace networkStructure {
 
@@ -57,13 +59,6 @@ std::map<int, double> Algoritmo::getNeighborCommunityWeights(networkStructure::N
         weights[neighbor_comm] += edge->getWeight();// Suma de pesos a la comunidad del vecino
     }
     return weights;
-}
-
-double Algoritmo::computeModularityGain(double k_i, double sigma_tot_C, double sigma_tot_D,
-                                            double k_i_in_C, double k_i_in_D) {
-    double term1 = (k_i_in_D - k_i_in_C) / m; // Primer término de la fórmula
-    double term2 = (k_i * (sigma_tot_C - sigma_tot_D - k_i)) / (2.0 * m * m); // Segundo término de la fórmula
-    return term1 + term2; // Ganancia total de modularidad (Delta Q)
 }
 
 void Algoritmo::run(double min_modularity_gain) {
@@ -120,7 +115,7 @@ void Algoritmo::run(double min_modularity_gain) {
                 }
                 // Datos de la comunidad objetivo 'j'
                 double sigma_tot_j = community_degrees.count(j) ? community_degrees.at(j) : 0.0;// Usamos .count() por si 'j' no existe
-                double D = computeModularityGain(k_i, sigma_tot_i, sigma_tot_j, k_i_in_i, k_i_in_j);
+                double D = ((k_i_in_j - k_i_in_i) / m) + ((k_i * (sigma_tot_i - sigma_tot_j - k_i)) / (2*m*m));
 
                 // Verificamos si esta es la mejor ganancia hasta ahora
                 if (D - max_gain > min_modularity_gain) {
@@ -142,4 +137,85 @@ void Algoritmo::run(double min_modularity_gain) {
     } while (communities_changed); // Repetimos hasta que no haya cambios en una pasada completa
 }
 
+void Algoritmo::mergeCommunities() {
+    if (!network || network->getNNodes() == 0) {
+        return;
+    }
+
+    // Agrupamos los nodos por su comunidad
+    std::map<int, std::vector<Node*>> communities;
+    for (const auto &pair : network->getNodesMap()) {
+        Node* node = pair.second.get();
+        if (!node) continue;
+        int comm_id = node->getCommunity();
+        communities[comm_id].push_back(node);
+    }
+
+    // Calculamos el ID máximo actual para crear nodos con IDs únicos
+    unsigned int max_node_id = 0;
+    for (const auto &pair : network->getNodesMap()) {
+        max_node_id = std::max(max_node_id, pair.first);
+    }
+    unsigned int next_new_id = max_node_id + 1;
+
+    for (auto &entry : communities) { // Procesamos cada comunidad
+        int comm_id = entry.first;
+        std::vector<Node*> &comm_nodes = entry.second;
+        if (comm_nodes.size() <= 1) {
+            continue;
+        }
+        std::unordered_set<Node*> communitySet(comm_nodes.begin(), comm_nodes.end());
+        Node* n_merge = network->addNode(next_new_id++); // Nuevo ID siguiente
+        n_merge->setCommunity(comm_id);
+
+        // Agregamos los miembros originales al nuevo nodo
+        for (Node* node_i : comm_nodes) {
+            if (!node_i) continue;
+
+            const auto &miembros_i = node_i->getMembers();
+            if (!miembros_i.empty()) {
+                // Si node_i ya era un supernodo, heredamos todos sus miembros
+                for (unsigned int mid : miembros_i) {
+                    n_merge->addMember(mid);
+                }
+            } else {
+                // Si no tuviera members, añadimos su propio ID
+                n_merge->addMember(node_i->getID());
+            }
+        }
+        std::unordered_map<Node*, double> externalWeights; // Mapa de pesos externos: vecino -> peso total acumulado
+        // Recorremos las aristas de los nodos de la comunidad
+        for (Node* node_i : comm_nodes) {
+            if (!node_i) continue;
+
+            const auto &adjList = node_i->getAdjList();
+            for (Edge* adjEdge : adjList) {
+                if (!adjEdge) continue;
+
+                Node* neighbor = adjEdge->getOpposite(node_i);
+                if (!neighbor) continue;
+                // Si el vecino está en la misma comunidad, lo ignoramos
+                if (communitySet.find(neighbor) != communitySet.end()) {
+                    continue;
+                }
+                // Acumular peso hacia ese vecino externo
+                externalWeights[neighbor] += adjEdge->getWeight();
+            }
+        }
+        // Crear aristas (n_merge, neighbor, total_w) en la red
+        for (auto &nw : externalWeights) {
+            Node* neighbor = nw.first;
+            double total_w = nw.second;
+            if (!neighbor) continue;
+
+            network->addEdge(n_merge->getID(), neighbor->getID(), total_w);
+        }
+        // Eliminamos los nodos originales de la comunidad
+        for (Node* node_i : comm_nodes) {
+            if (!node_i) continue;
+            unsigned int old_id = node_i->getID();
+            network->removeNode(old_id);
+        }
+    }
+}
 } // namespace networkStructure

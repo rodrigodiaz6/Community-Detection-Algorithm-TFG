@@ -6,7 +6,7 @@
 namespace networkStructure {
 
 Node::Node(unsigned int id0)
-    : id(id0), community(1), adjList() {}
+    : id(id0), community(1), adjList(), members() {}
 
 unsigned int Node::getID() {
     return id;
@@ -46,6 +46,18 @@ void Node::eraseEdge(Edge *edge) {
 
 void Node::eraseAllEdges() {
     adjList.clear();
+}
+
+void Node::addMember(unsigned int member_id) {
+    members.push_back(member_id);
+}
+
+const std::vector<unsigned int>& Node::getMembers() const {
+    return members;
+}
+
+void Node::setMembers(const std::vector<unsigned int>& new_members) {
+    members = new_members;
 }
 
 Node::~Node() {

@@ -17,6 +17,7 @@ private:
     unsigned int id; ///< Identificador único del nodo.
     int community; ///< ID de la comunidad a la que pertenece el nodo.
     std::vector<Edge*> adjList; ///< Lista de punteros a las aristas incidentes.
+    std::vector<unsigned int> members; ///< IDs de nodos si este nodo representa una comunidad fusionada.
 
 public:
     /**
@@ -79,6 +80,23 @@ public:
      * @brief Borra todas las aristas de la lista de aristas del nodo actual.
      */
     void eraseAllEdges();
+
+    /**
+     * @brief Añade un ID de nodo a la lista de nodos cuando se fusiona una comunidad.
+     * @param member_id ID del nodo a añadir.
+     */
+    void addMember(unsigned int member_id);
+
+    /**
+     * @brief Devuelve los IDs de nodos originales contenidos en este nodo.
+     */
+    const std::vector<unsigned int>& getMembers() const;
+
+    /**
+     * @brief Permite establecer la lista de miembros del nodo.
+     * @param new_members Vector con los IDs de los nodos.
+     */
+    void setMembers(const std::vector<unsigned int>& new_members);
 
     /**
      * @brief Destructor de la clase Node.
