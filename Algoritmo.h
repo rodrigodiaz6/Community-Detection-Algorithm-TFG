@@ -44,6 +44,19 @@ public:
      */
     void run(double min_modularity_gain = 0.000001);
 
+        /**
+     * @brief Fusiona los nodos que pertenecen a la misma comunidad en nodos únicos.
+     * @details Implementa el pseudocódigo mergeCommunities(G):
+     *  - Agrupa los nodos por su atributo community.
+     *  - Para cada comunidad con tamaño > 1, crea un nodo nuevo que representa a dicha comunidad.
+     *  - Acumula los pesos de las aristas hacia nodos fuera de la comunidad (externalWeights).
+     *  - Crea aristas desde el nodo fusionado hacia cada vecino externo con el peso total acumulado.
+     *  - Elimina los nodos originales de esa comunidad.
+     * 
+     * Complejidad: O(m), siendo m el número de aristas de la red.
+     */
+    void mergeCommunities();
+
 private:
     networkStructure::Network* network; ///< Puntero a la red que se está procesando.
     double m; ///< El peso total de todas las aristas en la red (sum(W_ij) / 2).
@@ -64,20 +77,6 @@ private:
      * @details Se debe llamar al inicio de cada pasada del bucle principal, ya que los Sigma_tot cambian cuando los nodos se mueven.
      */
     void precomputeAggregates();
-
-    /**
-     * @brief Calcula la ganancia de modularidad (Delta Q) al mover un nodo de su comunidad actual a una comunidad objetivo.
-     * @details La fórmula usada es la estándar para el cambio de modularidad (Delta Q) al mover un nodo 'i' de una comunidad 'C' a una 'D':
-     * Delta Q = [ (k_i_in_D - k_i_in_C) / m ] + [ (k_i * (Sigma_tot_C - Sigma_tot_D - k_i)) / (2*m*m) ]
-     *
-     * @param k_i Grado ponderado del nodo que se mueve.
-     * @param sigma_tot_C Grado ponderado total de la comunidad *actual* (C).
-     * @param sigma_tot_D Grado ponderado total de la comunidad *objetivo* (D).
-     * @param k_i_in_C Peso de las aristas de 'i' a otros nodos en 'C'.
-     * @param k_i_in_D Peso de las aristas de 'i' a otros nodos en 'D'.
-     * @return El valor de Delta Q (D).
-     */
-    double computeModularityGain(double k_i, double sigma_tot_C, double sigma_tot_D, double k_i_in_C, double k_i_in_D);
 
     /**
      * @brief Obtiene los pesos de las aristas de un nodo hacia cada comunidad vecina.

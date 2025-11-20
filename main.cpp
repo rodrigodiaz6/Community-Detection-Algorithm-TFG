@@ -54,27 +54,43 @@ bool loadNetworkFromCSV(const std::string& filename, Network& network) {
  */
 void printNetwork(Network& network) {
     std::cout << "\n--- Estado Actual de la Red ---" << std::endl;
-    std::cout << "Nodos Totales: " << network.getNNodes() << " | Aristas Totales: " << network.getNEdges() << std::endl;
+    std::cout << "Nodos Totales: " << network.getNNodes()
+              << " | Aristas Totales: " << network.getNEdges() << std::endl;
     std::cout << "---------------------------------" << std::endl;
 
     for (const auto& pair : network.getNodesMap()) {
         Node* node = pair.second.get();
-        if (node) {
-            std::cout << "Nodo " << node->getID() << " (Comunidad: " << node->getCommunity() << ", Grado: " << node->getDegree() << ") conectado a:" << std::endl;
-            const auto& adjList = node->getAdjList();
-            if (adjList.empty()) {
-                std::cout << "  (Sin conexiones)" << std::endl;
-            } else {
-                for (const auto& edge : adjList) {
-                    Node* opposite = edge->getOpposite(node);
-                    std::cout << "  -> Nodo " << opposite->getID() 
-                              << " (via Arista ID " << edge->getID() 
-                              << ", Peso: " << edge->getWeight() << ")" << std::endl;
-                }
+        if (!node) continue;
+
+        std::cout << "Nodo " << node->getID()
+                  << " (Comunidad: " << node->getCommunity()
+                  << ", Grado: " << node->getDegree() << ")" << std::endl;
+        // -------------------- Imprimir miembros ---------------------------------
+        const auto& members = node->getMembers();
+        if (!members.empty()) {
+            std::cout << "  Miembros: ";
+            for (unsigned int mid : members) {
+                std::cout << mid << " ";
+            }
+            std::cout << std::endl;
+        } else {
+            std::cout << "  Miembros: (ninguno)" << std::endl;
+        }
+        // ------------------------------------------------------------------------
+        std::cout << "  Conectado a:" << std::endl;
+        const auto& adjList = node->getAdjList();
+        if (adjList.empty()) {
+            std::cout << "    (Sin conexiones)" << std::endl;
+        } else {
+            for (const auto& edge : adjList) {
+                Node* opposite = edge->getOpposite(node);
+                std::cout << "    -> Nodo " << opposite->getID()
+                          << " (via Arista ID " << edge->getID()
+                          << ", Peso: " << edge->getWeight() << ")" << std::endl;
             }
         }
     }
-     std::cout << "---------------------------------" << std::endl;
+    std::cout << "---------------------------------" << std::endl;
 }
 
 void printCommunities(Network& network) {
@@ -104,7 +120,8 @@ void showMenu() {
     std::cout << "2. Eliminar una Arista" << std::endl;
     std::cout << "3. Imprimir la Red Completa" << std::endl;
     std::cout << "4. Algoritmo de comunidades" << std::endl;
-    std::cout << "5. Finalizar Ejecucion" << std::endl;
+    std::cout << "5. Fusionar nodos por comunidades" << std::endl;
+    std::cout << "6. Finalizar Ejecucion" << std::endl;
     std::cout << "Seleccione una opcion: ";
 }
 
@@ -166,6 +183,11 @@ int main() {
             std::cout << "Algoritmo completado. Comunidades asignadas." << std::endl;
             printCommunities(myNetwork);
         } else if (choice == 5) {
+            Algoritmo algoritmo(&myNetwork);
+            algoritmo.mergeCommunities();
+            std::cout << "Nodos fusionados por comunidades." << std::endl;
+            printNetwork(myNetwork);
+        } else if (choice == 6) {
             // Salir
             std::cout << "Finalizando ejecucion." << std::endl;
             break;
