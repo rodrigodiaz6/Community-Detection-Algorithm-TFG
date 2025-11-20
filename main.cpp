@@ -130,11 +130,10 @@ int main() {
 
     // Cargamos la red
     std::cout << "Cargando red desde 'network_data.csv'..." << std::endl;
-    if (!loadNetworkFromCSV("network_data.csv", myNetwork)) {
+    if (!loadNetworkFromCSV("network2.csv", myNetwork)) {
         return 1; // Termina si no se puede cargar el archivo.
     }
-    std::cout << "Red cargada con " << myNetwork.getNNodes() << " nodos y " 
-              << myNetwork.getNEdges() << " aristas." << std::endl;
+    std::cout << "Red cargada con " << myNetwork.getNNodes() << " nodos y " << myNetwork.getNEdges() << " aristas." << std::endl;
 
     int choice;
     while (true) {
@@ -179,7 +178,7 @@ int main() {
             std::cout << "Ejecutando algoritmo de deteccion de comunidades..." << std::endl;
             printCommunities(myNetwork);
             Algoritmo algoritmo(&myNetwork);
-            algoritmo.run(0.000001); // Umbral de ganancia de modularidad
+            algoritmo.run(0, 0.5); // min_gain, gamma
             std::cout << "Algoritmo completado. Comunidades asignadas." << std::endl;
             printCommunities(myNetwork);
         } else if (choice == 5) {
