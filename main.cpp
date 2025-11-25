@@ -8,6 +8,7 @@
 #include "Node.h"
 #include "Edge.h"
 #include "Algoritmo.h"
+#include <omp.h> 
 
 using namespace networkStructure;
 
@@ -127,9 +128,16 @@ void showMenu() {
 
 int main() {
     Network myNetwork;
+     // Configurar número de hilos para OpenMP
+    int num_threads;
+    std::cout << "Introduce el numero de hilos a utilizar (4-16): ";
+    std::cin >> num_threads;
+    if (num_threads < 4) num_threads = 4;
+    if (num_threads > 16) num_threads = 16;
+    omp_set_num_threads(num_threads);
 
     // Cargamos la red
-    std::cout << "Cargando red desde 'network_data.csv'..." << std::endl;
+    std::cout << "Cargando red desde 'network2.csv'..." << std::endl;
     if (!loadNetworkFromCSV("network2.csv", myNetwork)) {
         return 1; // Termina si no se puede cargar el archivo.
     }
