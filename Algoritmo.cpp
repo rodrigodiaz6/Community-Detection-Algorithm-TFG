@@ -69,7 +69,7 @@ void Algoritmo::run(double min_gain, double gamma) {
         return;
     }
 
-    // Algoritmo de planificación de carga para OpenMP
+    // Algoritmo de planificación de carga para dividir nodos entre hilos
     int P = omp_get_max_threads();
     if (P < 1) P = 1;
 
@@ -105,7 +105,7 @@ void Algoritmo::run(double min_gain, double gamma) {
         final_idx[P - 1] = N;
     }
 
-    // Estructura para guardar el mejor cambio de cada hilo
+    // Estructura para guardar el mejor cambio
     struct Change {
         int jaux;   // ID del nodo a mover
         int kaux;   // comunidad destino
@@ -136,7 +136,7 @@ void Algoritmo::run(double min_gain, double gamma) {
             changeData[i].dQ   = 0.0;
         }
 
-        // 4.2) Paralelo: cada hilo busca su mejor (j,k,ΔQ)
+        // Paralelo: cada hilo busca su mejor movimiento local
         #pragma omp parallel
         {
             int tid = omp_get_thread_num();
@@ -209,7 +209,7 @@ void Algoritmo::run(double min_gain, double gamma) {
                 pmax = i;
             }
         }
-        // Aplicamos LocalMove si hay mejora positiva
+        // Aplicamos localMove si hay mejora positiva
         if (pmax != -1 && dQmax > 0.0 && changeData[pmax].jaux != -1 && changeData[pmax].kaux != -1) {
             Node* node_to_move = network->getNode(static_cast<unsigned int>(changeData[pmax].jaux));
             if (node_to_move) {

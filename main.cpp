@@ -117,12 +117,10 @@ void printCommunities(Network& network) {
  */
 void showMenu() {
     std::cout << "\n--- Menu de Opciones ---" << std::endl;
-    std::cout << "1. Eliminar un Nodo" << std::endl;
-    std::cout << "2. Eliminar una Arista" << std::endl;
-    std::cout << "3. Imprimir la Red Completa" << std::endl;
-    std::cout << "4. Algoritmo de comunidades" << std::endl;
-    std::cout << "5. Fusionar nodos por comunidades" << std::endl;
-    std::cout << "6. Finalizar Ejecucion" << std::endl;
+    std::cout << "1. Imprimir la Red Completa" << std::endl;
+    std::cout << "2. Algoritmo de comunidades" << std::endl;
+    std::cout << "3. Fusionar nodos por comunidades" << std::endl;
+    std::cout << "4. Finalizar Ejecucion" << std::endl;
     std::cout << "Seleccione una opcion: ";
 }
 
@@ -130,15 +128,13 @@ int main() {
     Network myNetwork;
      // Configurar número de hilos para OpenMP
     int num_threads;
-    std::cout << "Introduce el numero de hilos a utilizar (4-16): ";
+    std::cout << "Introduce el numero de hilos a utilizar (1-16): ";
     std::cin >> num_threads;
-    if (num_threads < 4) num_threads = 4;
-    if (num_threads > 16) num_threads = 16;
     omp_set_num_threads(num_threads);
 
     // Cargamos la red
-    std::cout << "Cargando red desde 'network2.csv'..." << std::endl;
-    if (!loadNetworkFromCSV("network2.csv", myNetwork)) {
+    std::cout << "Cargando red..." << std::endl;
+    if (!loadNetworkFromCSV("Test8001_Rodrigo.csv", myNetwork)) {
         return 1; // Termina si no se puede cargar el archivo.
     }
     std::cout << "Red cargada con " << myNetwork.getNNodes() << " nodos y " << myNetwork.getNEdges() << " aristas." << std::endl;
@@ -147,8 +143,6 @@ int main() {
     while (true) {
         showMenu();
         std::cin >> choice;
-
-        // Validamos la entrada del usuario
         if (std::cin.fail()) {
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -156,46 +150,23 @@ int main() {
             continue;
         }
 
-        if (choice == 1) {
-            // Eliminar Nodo
-            unsigned int node_id;
-            std::cout << "Introduce el ID del nodo a eliminar: ";
-            std::cin >> node_id;
-            if (myNetwork.getNode(node_id)) {
-                myNetwork.removeNode(node_id);
-                std::cout << "Nodo " << node_id << " y sus aristas han sido eliminados." << std::endl;
-            } else {
-                std::cout << "Error: El nodo " << node_id << " no existe." << std::endl;
-            }
-        } else if (choice == 2) {
-            // Eliminar Arista
-            unsigned int edge_id;
-            std::cout << "Introduce el ID de la arista a eliminar: ";
-            std::cin >> edge_id;
-            if (myNetwork.getEdge(edge_id)) {
-                myNetwork.removeEdge(edge_id);
-                std::cout << "Arista " << edge_id << " eliminada." << std::endl;
-            } else {
-                std::cout << "Error: La arista " << edge_id << " no existe." << std::endl;
-            }
-        } else if (choice == 3) {
-            // Imprimir red completa
+        if (choice == 1) { // Mostrar red
             printNetwork(myNetwork);
-        } else if (choice == 4) {
-            // Ejecutar algoritmo de comunidades
+        } else if (choice == 2) { // Ejecutar algoritmo de comunidades
             std::cout << "Ejecutando algoritmo de deteccion de comunidades..." << std::endl;
-            printCommunities(myNetwork);
             Algoritmo algoritmo(&myNetwork);
-            algoritmo.run(0, 0.5); // min_gain, gamma
+            double t0 = omp_get_wtime();
+            algoritmo.run(0.000001, 0.001); // min_gain, gamma
+            double t1 = omp_get_wtime();
             std::cout << "Algoritmo completado. Comunidades asignadas." << std::endl;
             printCommunities(myNetwork);
-        } else if (choice == 5) {
+            std::cout << "Tiempo de ejecucion del algoritmo: " << (t1 - t0) << " segundos." << std::endl;
+        } else if (choice == 3) { // Fusionar nodos por comunidades
             Algoritmo algoritmo(&myNetwork);
             algoritmo.mergeCommunities();
             std::cout << "Nodos fusionados por comunidades." << std::endl;
             printNetwork(myNetwork);
-        } else if (choice == 6) {
-            // Salir
+        } else if (choice == 4) { //Salir
             std::cout << "Finalizando ejecucion." << std::endl;
             break;
         } else {
