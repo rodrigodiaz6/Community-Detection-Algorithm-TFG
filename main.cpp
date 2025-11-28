@@ -48,7 +48,6 @@ bool loadNetworkFromCSV(const std::string& filename, Network& network) {
     file.close();
     return true;
 }
-
 /**
  * @brief Imprime todos los nodos y sus conexiones en la red.
  * @param network La red a imprimir.
@@ -105,12 +104,12 @@ void printCommunities(Network& network) {
         communitySizes[commId]++;   // sumamos 1 nodo a esa comunidad
     }
     std::cout << "Estado de las comunidades:" << std::endl;
-    std::cout << "Numero de comunidades: " << communitySizes.size() << std::endl;
     for (const auto& entry : communitySizes) {
         int commId = entry.first;
         unsigned int size = entry.second;
         std::cout << "  - Comunidad " << commId << ": " << size << " nodos" << std::endl;
     }
+    std::cout << "Numero de comunidades: " << communitySizes.size() << std::endl;
 }
 
 /**
@@ -134,7 +133,7 @@ int main() {
     omp_set_num_threads(num_threads);
     // Cargamos la red
     std::cout << "Cargando red..." << std::endl;
-    if (!loadNetworkFromCSV("Test4001_Rodrigo.csv", myNetwork)) {
+    if (!loadNetworkFromCSV("Test64001_Rodrigo.csv", myNetwork)) {
         return 1; // Termina si no se puede cargar el archivo.
     }
     std::cout << "Red cargada con " << myNetwork.getNNodes() << " nodos y " << myNetwork.getNEdges() << " aristas." << std::endl;
