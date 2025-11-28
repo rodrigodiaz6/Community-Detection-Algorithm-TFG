@@ -55,18 +55,11 @@ bool loadNetworkFromCSV(const std::string& filename, Network& network) {
  */
 void printNetwork(Network& network) {
     std::cout << "\n--- Estado Actual de la Red ---" << std::endl;
-    std::cout << "Nodos Totales: " << network.getNNodes()
-              << " | Aristas Totales: " << network.getNEdges() << std::endl;
-    std::cout << "---------------------------------" << std::endl;
-
+    std::cout << "Nodos Totales: " << network.getNNodes() << " | Aristas Totales: " << network.getNEdges() << std::endl;
     for (const auto& pair : network.getNodesMap()) {
         Node* node = pair.second.get();
         if (!node) continue;
-
-        std::cout << "Nodo " << node->getID()
-                  << " (Comunidad: " << node->getCommunity()
-                  << ", Grado: " << node->getDegree() << ")" << std::endl;
-        // -------------------- Imprimir miembros ---------------------------------
+        std::cout << "Nodo " << node->getID() << " (Comunidad: " << node->getCommunity() << ", Grado: " << node->getDegree() << ")" << std::endl;
         const auto& members = node->getMembers();
         if (!members.empty()) {
             std::cout << "  Miembros: ";
@@ -77,7 +70,6 @@ void printNetwork(Network& network) {
         } else {
             std::cout << "  Miembros: (ninguno)" << std::endl;
         }
-        // ------------------------------------------------------------------------
         std::cout << "  Conectado a:" << std::endl;
         const auto& adjList = node->getAdjList();
         if (adjList.empty()) {
@@ -85,31 +77,40 @@ void printNetwork(Network& network) {
         } else {
             for (const auto& edge : adjList) {
                 Node* opposite = edge->getOpposite(node);
-                std::cout << "    -> Nodo " << opposite->getID()
-                          << " (via Arista ID " << edge->getID()
-                          << ", Peso: " << edge->getWeight() << ")" << std::endl;
+                std::cout << "    -> Nodo " << opposite->getID() << " (via Arista ID " << edge->getID() << ", Peso: " << edge->getWeight() << ")" << std::endl;
             }
         }
     }
-    std::cout << "---------------------------------" << std::endl;
+}
+
+void printNetworkLite(Network& network) {
+    std::cout << "\n--- Resumen de la Red ---" << std::endl;
+    std::cout << "Nodos Totales: " << network.getNNodes() << " | Aristas Totales: " << network.getNEdges() << std::endl;
+    for (const auto& pair : network.getNodesMap()) {
+        Node* node = pair.second.get();
+        if (!node) continue;
+        const auto& members = node->getMembers();
+        std::size_t numMembers = members.size();
+        std::cout << "Nodo " << node->getID() << ": " << numMembers << " miembros" << std::endl;
+    }
 }
 
 void printCommunities(Network& network) {
-    std::cout << "Estado de las comunidades:" << std::endl;
-    std::map<int, std::vector<unsigned int>> communities;
+    std::map<int, unsigned int> communitySizes;
+    // Contar cuántos nodos hay en cada comunidad
     for (const auto& pair : network.getNodesMap()) {
         Node* node = pair.second.get();
-        communities[node->getCommunity()].push_back(node->getID());
+        if (!node) continue;
+        int commId = node->getCommunity();
+        communitySizes[commId]++;   // sumamos 1 nodo a esa comunidad
     }
-
-    for(const auto& pair : communities){
-        std::cout << "  - Comunidad " << pair.first << ": { ";
-        for(unsigned int nodeId : pair.second){
-            std::cout << nodeId << " ";
-        }
-        std::cout << "}" << std::endl;
+    std::cout << "Estado de las comunidades:" << std::endl;
+    std::cout << "Numero de comunidades: " << communitySizes.size() << std::endl;
+    for (const auto& entry : communitySizes) {
+        int commId = entry.first;
+        unsigned int size = entry.second;
+        std::cout << "  - Comunidad " << commId << ": " << size << " nodos" << std::endl;
     }
-    std::cout << "---------------------------" << std::endl;
 }
 
 /**
@@ -131,10 +132,9 @@ int main() {
     std::cout << "Introduce el numero de hilos a utilizar (1-16): ";
     std::cin >> num_threads;
     omp_set_num_threads(num_threads);
-
     // Cargamos la red
     std::cout << "Cargando red..." << std::endl;
-    if (!loadNetworkFromCSV("Test8001_Rodrigo.csv", myNetwork)) {
+    if (!loadNetworkFromCSV("Test4001_Rodrigo.csv", myNetwork)) {
         return 1; // Termina si no se puede cargar el archivo.
     }
     std::cout << "Red cargada con " << myNetwork.getNNodes() << " nodos y " << myNetwork.getNEdges() << " aristas." << std::endl;
@@ -165,7 +165,7 @@ int main() {
             Algoritmo algoritmo(&myNetwork);
             algoritmo.mergeCommunities();
             std::cout << "Nodos fusionados por comunidades." << std::endl;
-            printNetwork(myNetwork);
+            printNetworkLite(myNetwork);
         } else if (choice == 4) { //Salir
             std::cout << "Finalizando ejecucion." << std::endl;
             break;
