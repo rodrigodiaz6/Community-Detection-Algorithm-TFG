@@ -8,6 +8,7 @@
 #include "Node.h"
 #include "Edge.h"
 #include "Algoritmo.h"
+#include <omp.h> 
 
 using namespace networkStructure;
 
@@ -47,25 +48,17 @@ bool loadNetworkFromCSV(const std::string& filename, Network& network) {
     file.close();
     return true;
 }
-
 /**
  * @brief Imprime todos los nodos y sus conexiones en la red.
  * @param network La red a imprimir.
  */
 void printNetwork(Network& network) {
     std::cout << "\n--- Estado Actual de la Red ---" << std::endl;
-    std::cout << "Nodos Totales: " << network.getNNodes()
-              << " | Aristas Totales: " << network.getNEdges() << std::endl;
-    std::cout << "---------------------------------" << std::endl;
-
+    std::cout << "Nodos Totales: " << network.getNNodes() << " | Aristas Totales: " << network.getNEdges() << std::endl;
     for (const auto& pair : network.getNodesMap()) {
         Node* node = pair.second.get();
         if (!node) continue;
-
-        std::cout << "Nodo " << node->getID()
-                  << " (Comunidad: " << node->getCommunity()
-                  << ", Grado: " << node->getDegree() << ")" << std::endl;
-        // -------------------- Imprimir miembros ---------------------------------
+        std::cout << "Nodo " << node->getID() << " (Comunidad: " << node->getCommunity() << ", Grado: " << node->getDegree() << ")" << std::endl;
         const auto& members = node->getMembers();
         if (!members.empty()) {
             std::cout << "  Miembros: ";
@@ -76,7 +69,6 @@ void printNetwork(Network& network) {
         } else {
             std::cout << "  Miembros: (ninguno)" << std::endl;
         }
-        // ------------------------------------------------------------------------
         std::cout << "  Conectado a:" << std::endl;
         const auto& adjList = node->getAdjList();
         if (adjList.empty()) {
@@ -84,31 +76,40 @@ void printNetwork(Network& network) {
         } else {
             for (const auto& edge : adjList) {
                 Node* opposite = edge->getOpposite(node);
-                std::cout << "    -> Nodo " << opposite->getID()
-                          << " (via Arista ID " << edge->getID()
-                          << ", Peso: " << edge->getWeight() << ")" << std::endl;
+                std::cout << "    -> Nodo " << opposite->getID() << " (via Arista ID " << edge->getID() << ", Peso: " << edge->getWeight() << ")" << std::endl;
             }
         }
     }
-    std::cout << "---------------------------------" << std::endl;
+}
+
+void printNetworkLite(Network& network) {
+    std::cout << "\n--- Resumen de la Red ---" << std::endl;
+    std::cout << "Nodos Totales: " << network.getNNodes() << " | Aristas Totales: " << network.getNEdges() << std::endl;
+    for (const auto& pair : network.getNodesMap()) {
+        Node* node = pair.second.get();
+        if (!node) continue;
+        const auto& members = node->getMembers();
+        std::size_t numMembers = members.size();
+        std::cout << "Nodo " << node->getID() << ": " << numMembers << " miembros" << std::endl;
+    }
 }
 
 void printCommunities(Network& network) {
-    std::cout << "Estado de las comunidades:" << std::endl;
-    std::map<int, std::vector<unsigned int>> communities;
+    std::map<int, unsigned int> communitySizes;
+    // Contar cuántos nodos hay en cada comunidad
     for (const auto& pair : network.getNodesMap()) {
         Node* node = pair.second.get();
-        communities[node->getCommunity()].push_back(node->getID());
+        if (!node) continue;
+        int commId = node->getCommunity();
+        communitySizes[commId]++;   // sumamos 1 nodo a esa comunidad
     }
-
-    for(const auto& pair : communities){
-        std::cout << "  - Comunidad " << pair.first << ": { ";
-        for(unsigned int nodeId : pair.second){
-            std::cout << nodeId << " ";
-        }
-        std::cout << "}" << std::endl;
+    std::cout << "Estado de las comunidades:" << std::endl;
+    for (const auto& entry : communitySizes) {
+        int commId = entry.first;
+        unsigned int size = entry.second;
+        std::cout << "  - Comunidad " << commId << ": " << size << " nodos" << std::endl;
     }
-    std::cout << "---------------------------" << std::endl;
+    std::cout << "Numero de comunidades: " << communitySizes.size() << std::endl;
 }
 
 /**
@@ -116,21 +117,25 @@ void printCommunities(Network& network) {
  */
 void showMenu() {
     std::cout << "\n--- Menu de Opciones ---" << std::endl;
-    std::cout << "1. Eliminar un Nodo" << std::endl;
-    std::cout << "2. Eliminar una Arista" << std::endl;
-    std::cout << "3. Imprimir la Red Completa" << std::endl;
-    std::cout << "4. Algoritmo de comunidades" << std::endl;
-    std::cout << "5. Fusionar nodos por comunidades" << std::endl;
-    std::cout << "6. Finalizar Ejecucion" << std::endl;
+    std::cout << "1. Imprimir la Red Completa" << std::endl;
+    std::cout << "2. Algoritmo de comunidades" << std::endl;
+    std::cout << "3. Fusionar nodos por comunidades" << std::endl;
+    std::cout << "4. Finalizar Ejecucion" << std::endl;
     std::cout << "Seleccione una opcion: ";
 }
 
 int main() {
     Network myNetwork;
-
+     // Configurar número de hilos para OpenMP
+    int p;
+    std::cout << "Introduce el numero de cores a utilizar: ";
+    std::cin >> p;
+    omp_set_num_threads(p);
+    putenv((char*)"OMP_PLACES=cores");
+    putenv((char*)"OMP_PROC_BIND=close");
     // Cargamos la red
-    std::cout << "Cargando red desde 'network_data.csv'..." << std::endl;
-    if (!loadNetworkFromCSV("network2.csv", myNetwork)) {
+    std::cout << "Cargando red..." << std::endl;
+    if (!loadNetworkFromCSV("Test4001_Rodrigo.csv", myNetwork)) {
         return 1; // Termina si no se puede cargar el archivo.
     }
     std::cout << "Red cargada con " << myNetwork.getNNodes() << " nodos y " << myNetwork.getNEdges() << " aristas." << std::endl;
@@ -139,8 +144,6 @@ int main() {
     while (true) {
         showMenu();
         std::cin >> choice;
-
-        // Validamos la entrada del usuario
         if (std::cin.fail()) {
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -148,46 +151,20 @@ int main() {
             continue;
         }
 
-        if (choice == 1) {
-            // Eliminar Nodo
-            unsigned int node_id;
-            std::cout << "Introduce el ID del nodo a eliminar: ";
-            std::cin >> node_id;
-            if (myNetwork.getNode(node_id)) {
-                myNetwork.removeNode(node_id);
-                std::cout << "Nodo " << node_id << " y sus aristas han sido eliminados." << std::endl;
-            } else {
-                std::cout << "Error: El nodo " << node_id << " no existe." << std::endl;
-            }
-        } else if (choice == 2) {
-            // Eliminar Arista
-            unsigned int edge_id;
-            std::cout << "Introduce el ID de la arista a eliminar: ";
-            std::cin >> edge_id;
-            if (myNetwork.getEdge(edge_id)) {
-                myNetwork.removeEdge(edge_id);
-                std::cout << "Arista " << edge_id << " eliminada." << std::endl;
-            } else {
-                std::cout << "Error: La arista " << edge_id << " no existe." << std::endl;
-            }
-        } else if (choice == 3) {
-            // Imprimir red completa
+        if (choice == 1) { // Mostrar red
             printNetwork(myNetwork);
-        } else if (choice == 4) {
-            // Ejecutar algoritmo de comunidades
+        } else if (choice == 2) { // Ejecutar algoritmo de comunidades
             std::cout << "Ejecutando algoritmo de deteccion de comunidades..." << std::endl;
-            printCommunities(myNetwork);
             Algoritmo algoritmo(&myNetwork);
-            algoritmo.run(0, 0.5); // min_gain, gamma
+            algoritmo.run(0.000001, 0.001); // min_gain, gamma
             std::cout << "Algoritmo completado. Comunidades asignadas." << std::endl;
             printCommunities(myNetwork);
-        } else if (choice == 5) {
+        } else if (choice == 3) { // Fusionar nodos por comunidades
             Algoritmo algoritmo(&myNetwork);
             algoritmo.mergeCommunities();
             std::cout << "Nodos fusionados por comunidades." << std::endl;
-            printNetwork(myNetwork);
-        } else if (choice == 6) {
-            // Salir
+            printNetworkLite(myNetwork);
+        } else if (choice == 4) { //Salir
             std::cout << "Finalizando ejecucion." << std::endl;
             break;
         } else {
