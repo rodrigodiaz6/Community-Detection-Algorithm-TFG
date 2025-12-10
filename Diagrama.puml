@@ -1,0 +1,93 @@
+@startuml
+left to right direction
+
+namespace networkStructure {
+
+' =======================
+'        CLASES
+' =======================
+package "Estructuras" {
+  class Node {
+  - id : unsigned int
+  - community : int
+  - adjList : std::vector<Edge*>
+  - members : std::vector<unsigned int>
+
+  + Node(id0 : unsigned int)
+  + ~Node()
+  + getID() : unsigned int
+  + getCommunity() : int
+  + setCommunity(c : int) : void
+  + getDegree() : std::size_t
+  + getAdjList() : std::vector<Edge*>&
+  + equals(node : Node*) : bool
+  + addEdge(edge : Edge*) : void
+  + eraseEdge(edge : Edge*) : void
+  + eraseAllEdges() : void
+  + addMember(member_id : unsigned int) : void
+  + getMembers() : const std::vector<unsigned int>&
+  + setMembers(new_members : const std::vector<unsigned int>&) : void
+}
+
+class Edge {
+  - id : unsigned int
+  - n1 : Node*
+  - n2 : Node*
+  - weight : double
+
+  + Edge(id0 : unsigned int, node1 : Node*, node2 : Node*, weight0 : double)
+  + getID() : unsigned int
+  + getOrigin() : Node*
+  + getDestiny() : Node*
+  + getWeight() : double
+  + getOpposite(node : Node*) : Node*
+  + equals(edge : Edge*) : bool
+}
+
+class Network {
+  - nodes : std::map<unsigned int, std::unique_ptr<Node>>
+  - edges : std::map<unsigned int, std::unique_ptr<Edge>>
+  - next_edge_id : unsigned int
+
+  + getNNodes() : std::size_t
+  + getNEdges() : std::size_t
+  + getNode(id : unsigned int) : Node*
+  + getEdge(id : unsigned int) : Edge*
+  + addNode(id : unsigned int) : Node*
+  + addEdge(id_origin : unsigned int, id_destiny : unsigned int, weight : double) : Edge*
+  + removeEdge(id : unsigned int) : void
+  + removeNode(id : unsigned int) : void
+  + getEdgesOfNode(id : unsigned int) : std::vector<Edge*>
+  + getNodesMap() : std::map<unsigned int, std::unique_ptr<Node>>&
+}
+}
+
+  class Algoritmo {
+  - network : Network*
+
+  + Algoritmo(net : Network*)
+  + initializeCommunities() : void
+  + getNeighborCommunityWeights(node : Node*) : std::map<int, double>
+  + run(min_gain : double, gamma : double) : void
+  + mergeCommunities() : void
+}
+' =======================
+'    RELACIONES
+' =======================
+
+' Network posee (composición) los nodos y aristas
+Network "1" o-- "*" Node : nodes
+Network "1" o-- "*" Edge : edges
+
+' Node mantiene referencias a sus aristas incidentes
+Node "1" --> "*" Edge : adjList
+
+' Edge conecta exactamente dos nodos
+Edge "1" --> "1" Node : origin (n1)
+Edge "1" --> "1" Node : destiny (n2)
+
+' Algoritmo trabaja sobre una red existente (asociación)
+Algoritmo "1" --> "1" Network : network
+
+}
+@enduml

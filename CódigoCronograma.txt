@@ -1,0 +1,24 @@
+gantt
+    title Cronograma de desarrollo del TFG
+    dateFormat  YYYY-MM-DD
+    axisFormat  %d/%m
+
+    section Inicio y Planificación
+    Inicio y Hoja de Ruta            :active, des1, 2025-09-17, 2025-09-25
+    Validación Metodología           :des2, 2025-09-25, 2025-10-02
+
+    section Desarrollo
+    Inicio Implementación            :crit, dev1, 2025-10-02, 2025-10-14
+    Algoritmos de Comunidades        :dev2, 2025-10-14, 2025-10-27
+    Revisión de Código y QA          :dev3, 2025-10-27, 2025-11-04
+
+    section Optimización
+    Merge, Paralelismo y Memoria     :active, opt1, 2025-11-04, 2025-11-11
+    Grafos y Metadatos               :opt2, 2025-11-11, 2025-11-18
+    Pautas Finales (Pre-cierre)      :opt3, 2025-11-18, 2025-11-25
+
+    section Cierre
+    Finalización del Código          :crit, fin1, 2025-11-25, 2025-11-28
+    Visualización y Dashboards       :fin2, 2025-11-28, 2025-12-01
+    Edición Final de la Memoria      :fin3, 2025-12-01, 2025-12-04
+    Entrega / Depósito               :milestone, 2025-12-04, 0d
