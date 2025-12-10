@@ -68,8 +68,7 @@ void Algoritmo::run(double min_gain, double gamma) {
     if (total_degree == 0.0) {
         return;
     }
-
-    // Algoritmo de planificación de carga para dividir nodos entre hilos
+    // Algoritmo de planificación de carga para dividir nodos entre procesadores
     int P = omp_get_max_threads();
     if (P < 1) P = 1;
 
@@ -80,30 +79,20 @@ void Algoritmo::run(double min_gain, double gamma) {
     int l = 0;
     double suma = 0.0;
     inicial[0] = 0;
-
+    
     int N = static_cast<int>(nodes_to_process.size());
-
-    for (int i = 0; i < N && l < P; ++i) {
+	
+    for (int i = 0; i < N && l < P-1; ++i) {
         if (suma < load) {
             suma += node_degrees[i];
         } else {
             final_idx[l] = i;
             ++l;
-            if (l < P) {
-                inicial[l] = i;
-            }
+            inicial[l] = i+1;
             suma = 0.0;
         }
     }
-
-    if (l < P) {
-        final_idx[l] = N;
-        for (int t = l + 1; t < P; ++t) {
-            inicial[t] = final_idx[t] = N;
-        }
-    } else {
-        final_idx[P - 1] = N;
-    }
+    final_idx[l] = N-1;
 
     // Estructura para guardar el mejor cambio
     struct Change {
@@ -114,8 +103,10 @@ void Algoritmo::run(double min_gain, double gamma) {
     std::vector<Change> changeData(P);
 
     bool improved;
+    double totalIteraciones = 0.0;
 
-    // Bucle principal tipo SPLICE: en cada iteración solo se aplica el mejor movimiento global.
+    // Bucle principal
+    double t0 = omp_get_wtime();
     do {
         improved = false;
 
@@ -135,14 +126,16 @@ void Algoritmo::run(double min_gain, double gamma) {
             changeData[i].kaux = -1;
             changeData[i].dQ   = 0.0;
         }
-
-        // Paralelo: cada hilo busca su mejor movimiento local
+        
+        //double t0 = omp_get_wtime();  Si se quiere medir tiempo de iteraciones
+        // Sección paralela: cada hilo busca su mejor movimiento local
         #pragma omp parallel
         {
             int tid = omp_get_thread_num();
+
             int from = (tid < P ? inicial[tid]   : 0);
             int to   = (tid < P ? final_idx[tid] : 0);
-
+            
             int   best_node_id   = -1;
             int   best_comm_dest = -1;
             double best_dQ       = 0.0;
@@ -170,7 +163,7 @@ void Algoritmo::run(double min_gain, double gamma) {
                     k_i_in_i = it_self->second;
                 }
 
-                // Recorremos comunidades vecinas para ver a cuál moverlo
+                // Recorremos comunidades vecinas para ver a cual moverla
                 for (const auto& entry : neighbor_comm_weights) {
                     int comm_j = entry.first;
                     double k_i_in_j = entry.second;
@@ -192,13 +185,15 @@ void Algoritmo::run(double min_gain, double gamma) {
                     }
                 }
             }
-            // Guardamos el mejor cambio encontrado por este hilo
+            // Guardamos el mejor cambio encontrado
             if (tid < P) {
                 changeData[tid].jaux = best_node_id;
                 changeData[tid].kaux = best_comm_dest;
                 changeData[tid].dQ   = best_dQ;
             }
         } // fin región paralela
+        //double t1 = omp_get_wtime(); Si se quiere medir tiempo de iteraciones
+        //totalIteraciones += (t1 - t0);
 
         // Elegimos el mejor movimiento global entre todos los hilos
         int pmax = -1;
@@ -220,13 +215,14 @@ void Algoritmo::run(double min_gain, double gamma) {
             improved = false;
         }
     } while (improved);
+    double t1 = omp_get_wtime();
+    std::cout << "Tiempo de ejecucion de las iteraciones: " << (t1 - t0) << " segundos." << std::endl;
 }
 
 void Algoritmo::mergeCommunities() {
     if (!network || network->getNNodes() == 0) {
         return;
     }
-
     // Agrupamos los nodos por su comunidad
     std::map<int, std::vector<Node*>> communities;
     for (const auto &pair : network->getNodesMap()) {

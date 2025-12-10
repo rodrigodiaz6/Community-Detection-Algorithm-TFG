@@ -127,13 +127,15 @@ void showMenu() {
 int main() {
     Network myNetwork;
      // Configurar número de hilos para OpenMP
-    int num_threads;
-    std::cout << "Introduce el numero de hilos a utilizar (1-16): ";
-    std::cin >> num_threads;
-    omp_set_num_threads(num_threads);
+    int p;
+    std::cout << "Introduce el numero de cores a utilizar: ";
+    std::cin >> p;
+    omp_set_num_threads(p);
+    putenv((char*)"OMP_PLACES=cores");
+    putenv((char*)"OMP_PROC_BIND=close");
     // Cargamos la red
     std::cout << "Cargando red..." << std::endl;
-    if (!loadNetworkFromCSV("Test64001_Rodrigo.csv", myNetwork)) {
+    if (!loadNetworkFromCSV("Test4001_Rodrigo.csv", myNetwork)) {
         return 1; // Termina si no se puede cargar el archivo.
     }
     std::cout << "Red cargada con " << myNetwork.getNNodes() << " nodos y " << myNetwork.getNEdges() << " aristas." << std::endl;
@@ -154,12 +156,9 @@ int main() {
         } else if (choice == 2) { // Ejecutar algoritmo de comunidades
             std::cout << "Ejecutando algoritmo de deteccion de comunidades..." << std::endl;
             Algoritmo algoritmo(&myNetwork);
-            double t0 = omp_get_wtime();
             algoritmo.run(0.000001, 0.001); // min_gain, gamma
-            double t1 = omp_get_wtime();
             std::cout << "Algoritmo completado. Comunidades asignadas." << std::endl;
             printCommunities(myNetwork);
-            std::cout << "Tiempo de ejecucion del algoritmo: " << (t1 - t0) << " segundos." << std::endl;
         } else if (choice == 3) { // Fusionar nodos por comunidades
             Algoritmo algoritmo(&myNetwork);
             algoritmo.mergeCommunities();
